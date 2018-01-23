@@ -13,29 +13,35 @@ module Nest (
   , variable
   , string
   , numeric
+  , flag
+  , setting
+  , failure
 
   -- * Combinators for enriching parsers
   , option
   , withDefault
   , withContext
 
-  -- * Run parsers with system environment
+  -- * Run parsers with environment
   , run
+  , runT
+  , runWith
+  , runWithT
   , force
   ) where
 
 
 import           Control.Monad.IO.Class (MonadIO (..))
+import           Control.Monad.Trans.Class (MonadTrans (..))
 
 import           Data.ByteString (ByteString)
 import           Data.String (IsString (..))
+import           Data.Map (Map)
+import qualified Data.Map as Map
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
 import qualified Data.Text.IO as Text
-
-import           Data.Map (Map)
-import qualified Data.Map as Map
 
 import           Nest.Prelude
 
@@ -93,6 +99,14 @@ instance Monad m => Monad (Parser m) where
             Right a ->
              runEitherT $ parse (f a) e
 
+instance MonadIO m => MonadIO (Parser m) where
+  liftIO =
+    lift . liftIO
+
+instance MonadTrans Parser where
+  lift =
+    Parser . const . lift
+
 variable :: Monad m => ByteString -> Parser m ByteString
 variable name =
   Parser $ \e ->
@@ -111,6 +125,50 @@ numeric name = do
   Parser $ \_ ->
     fromMaybeM (left . NestParseError name . mconcat $ ["Could not parse numeric value from '", s ,"'"]) $
       readMaybe . Text.unpack $ s
+
+flag :: Monad m => ByteString -> a -> a -> Parser m a
+flag name true false = do
+  s <- string name
+  Parser $ \_ ->
+    case s of
+      "t" ->
+        pure true
+      "true" ->
+        pure true
+      "1" ->
+        pure true
+      "f" ->
+        pure false
+      "false" ->
+        pure false
+      "0" ->
+        pure false
+      _ ->
+        left . NestParseError name . mconcat $ [
+            "Invalid boolean flag value, expected true ['t', 'true', '1'] or false ['f', 'false', '0'], got: ", s
+          ]
+
+setting :: Monad m => ByteString -> Map Text a -> Parser m a
+setting name settings = do
+  s <- string name
+  Parser $ \_ ->
+    case Map.lookup s settings of
+      Just x ->
+        pure x
+      Nothing ->
+        left . NestParseError name $
+          mconcat [
+              "Unknown setting option ["
+            , s
+            , "]. Expected one of: ["
+            , Text.intercalate ", " $ Map.keys settings
+            , "]"
+            ]
+
+failure :: Monad m => ByteString -> Text -> Parser m a
+failure name message =
+  Parser $ \_ ->
+    left $ NestParseError name message
 
 option :: Monad m => Parser m a -> Parser m (Maybe a)
 option p =
@@ -145,8 +203,20 @@ withContext p context =
 
 run :: MonadIO m => Parser m a -> m (Either NestError a)
 run p =
-  liftIO Posix.getEnvironment >>= \e ->
-    runEitherT (parse p (Environment $ Map.fromList e))
+  liftIO Posix.getEnvironment >>=
+    flip runWith p . Environment . Map.fromList
+
+runT :: MonadIO m => Parser m a -> EitherT NestError m a
+runT =
+  newEitherT . run
+
+runWith :: MonadIO m => Environment -> Parser m a -> m (Either NestError a)
+runWith e p =
+  runEitherT (parse p e)
+
+runWithT :: MonadIO m => Environment -> Parser m a -> EitherT NestError m a
+runWithT e =
+  newEitherT . runWith e
 
 force :: MonadIO m => Parser m a -> m a
 force p =
