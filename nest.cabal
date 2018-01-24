@@ -39,8 +39,11 @@ test-suite test
   hs-source-dirs: test
   build-depends:
       base >= 3 && < 5
-    , hedgehog == 0.2.*
+    , bytestring
+    , containers
+    , hedgehog == 0.5.*
     , nest
+    , text
 
   ghc-options:
     -Wall
