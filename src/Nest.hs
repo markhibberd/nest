@@ -39,6 +39,8 @@ import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.String (IsString (..))
+import           Data.Map (Map)
+import qualified Data.Map as Map
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
@@ -154,6 +156,50 @@ setting name settings = do
           , Text.intercalate ", " $ Map.keys settings
           , "]"
           ]
+
+failure :: Monad m => ByteString -> Text -> Parser m a
+failure name message =
+  Parser $ \_ ->
+    left $ NestParseError name message
+
+flag :: Monad m => ByteString -> a -> a -> Parser m a
+flag name true false = do
+  s <- string name
+  Parser $ \_ ->
+    case s of
+      "t" ->
+        pure true
+      "true" ->
+        pure true
+      "1" ->
+        pure true
+      "f" ->
+        pure false
+      "false" ->
+        pure false
+      "0" ->
+        pure false
+      _ ->
+        left . NestParseError name . mconcat $ [
+            "Invalid boolean flag value, expected true ['t', 'true', '1'] or false ['f', 'false', '0'], got: ", s
+          ]
+
+setting :: Monad m => ByteString -> Map Text a -> Parser m a
+setting name settings = do
+  s <- string name
+  Parser $ \_ ->
+    case Map.lookup s settings of
+      Just x ->
+        pure x
+      Nothing ->
+        left . NestParseError name $
+          mconcat [
+              "Unknown setting option ["
+            , s
+            , "]. Expected one of: ["
+            , Text.intercalate ", " $ Map.keys settings
+            , "]"
+            ]
 
 failure :: Monad m => ByteString -> Text -> Parser m a
 failure name message =
