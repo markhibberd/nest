@@ -35,12 +35,9 @@ import           Control.Monad.IO.Class (MonadIO (..))
 import           Control.Monad.Trans.Class (MonadTrans (..))
 
 import           Data.ByteString (ByteString)
-import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.String (IsString (..))
-import           Data.Map (Map)
-import qualified Data.Map as Map
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
@@ -127,40 +124,6 @@ numeric name = do
   s <- string name
   fromMaybeM (failure name . mconcat $ ["Could not parse numeric value from '", s ,"'"]) $
     readMaybe . Text.unpack $ s
-
-flag :: Monad m => ByteString -> a -> a -> Parser m a
-flag name true false = do
-  s <- string name
-  case () of
-    _ | List.elem s ["t", "true", "1"] ->
-      pure true
-    _ | List.elem s ["f", "false", "0"] ->
-      pure false
-    _ | otherwise ->
-      failure name . mconcat $ [
-          "Invalid boolean flag value, expected true ['t', 'true', '1'] or false ['f', 'false', '0'], got: ", s
-        ]
-
-setting :: Monad m => ByteString -> Map Text a -> Parser m a
-setting name settings = do
-  s <- string name
-  case Map.lookup s settings of
-    Just x ->
-      pure x
-    Nothing ->
-      failure name $
-        mconcat [
-            "Unknown setting option ["
-          , s
-          , "]. Expected one of: ["
-          , Text.intercalate ", " $ Map.keys settings
-          , "]"
-          ]
-
-failure :: Monad m => ByteString -> Text -> Parser m a
-failure name message =
-  Parser $ \_ ->
-    left $ NestParseError name message
 
 flag :: Monad m => ByteString -> a -> a -> Parser m a
 flag name true false = do
