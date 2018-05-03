@@ -1,9 +1,9 @@
 name: nest
-version: 0.0.1
+version: 0.0.2
 license: BSD3
 author: Mark Hibberd <mark@hibberd.id.au>
 maintainer: Mark Hibberd <mark@hibberd.id.au>
-copyright: (c) 2017 Mark Hibberd
+copyright: (c) 2018 Mark Hibberd
 cabal-version: >= 1.24
 build-type: Simple
 description:
