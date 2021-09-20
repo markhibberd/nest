@@ -37,6 +37,8 @@ test-suite test
   type: exitcode-stdio-1.0
   main-is: test.hs
   hs-source-dirs: test
+  other-modules:
+    Test.Nest
   build-depends:
       base >= 3 && < 5
     , bytestring
