@@ -4,7 +4,7 @@ license: BSD3
 author: Mark Hibberd <mark@hibberd.id.au>
 maintainer: Mark Hibberd <mark@hibberd.id.au>
 copyright: (c) 2018 Mark Hibberd
-cabal-version: >= 1.24
+cabal-version: 1.24
 build-type: Simple
 description:
   Environment variable combinators.
@@ -14,10 +14,10 @@ library
 
   build-depends:
       base >= 3 && < 5
-    , bytestring == 0.10.*
+    , bytestring >= 0.10 && < 0.12
     , containers >= 0.5.5 && < 0.7
     , text == 1.2.*
-    , transformers == 0.5.*
+    , transformers >= 0.5 && < 0.7
     , unix == 2.*
 
   ghc-options:
@@ -37,11 +37,13 @@ test-suite test
   type: exitcode-stdio-1.0
   main-is: test.hs
   hs-source-dirs: test
+  other-modules:
+    Test.Nest
   build-depends:
       base >= 3 && < 5
     , bytestring
     , containers
-    , hedgehog == 0.5.*
+    , hedgehog >= 0.5 && < 1.1
     , nest
     , text
 
